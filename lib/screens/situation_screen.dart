@@ -38,52 +38,74 @@ class _SituationScreenState extends State<SituationScreen> {
       title: '취향 선택',
       stepIndex: widget.stepIndex,
       stepTotal: widget.stepTotal,
+
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SizedBox(height: 8),
+            // 제목
+            const SizedBox(height: 0),
+
             const Text(
               '어떤 상황인가요?',
-              style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800),
+              style: TextStyle(
+                fontSize: 19,
+                fontWeight: FontWeight.w800,
+              ),
             ),
+
             const SizedBox(height: 6),
+
             const Text(
-              '상황을 선택하면 더 잘 맞는 코스를 추천해드려요!',
-              style: TextStyle(fontSize: 13, color: Colors.black54),
+              '상황을 선택하면\n더 잘 맞는 코스를 추천해드려요!',
+              style: TextStyle(
+                fontSize: 13,
+                color: Colors.black54,
+                height: 1.5,
+              ),
             ),
-            const SizedBox(height: 20),
+
+            const SizedBox(height: 16),
+
+            // 상황 선택 버튼
             OptionGrid(
               options: OptionSets.situations,
               selected: _selected == null ? {} : {_selected!},
+
               onToggle: (o) => setState(() {
                 _selected = (_selected == o) ? null : o;
               }),
             ),
-            const SizedBox(height: 16),
+
+            const SizedBox(height: 14),
+
+            // 기타 입력
             const CustomNoteField(
-              hintText: '기타를 선택하셨나요?\n예: 부모님, 생신, 동호회 모임 등',
+              hintText: '기타를 선택하셨나요?\n예) 부모님 생신, 동호회 모임 등',
             ),
+
             const SizedBox(height: 16),
           ],
         ),
       ),
+
       bottomButton: PrimaryButton(
         label: '다음',
         onPressed: _selected == null
             ? null
             : () {
-                widget.data.situation = _selected;
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => PreferenceScreen(
-                      data: widget.data,
-                      stepIndex: widget.stepIndex + 1,
-                      stepTotal: widget.stepTotal,
-                    ),
-                  ),
-                );
-              },
+          widget.data.situation = _selected;
+
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => PreferenceScreen(
+                data: widget.data,
+                stepIndex: widget.stepIndex + 1,
+                stepTotal: widget.stepTotal,
+              ),
+            ),
+          );
+        },
       ),
     );
   }

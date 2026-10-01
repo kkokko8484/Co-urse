@@ -34,47 +34,70 @@ class _AvoidScreenState extends State<AvoidScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return StepScaffold(
-      title: '취향 선택',
-      stepIndex: widget.stepIndex,
-      stepTotal: widget.stepTotal,
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 8),
-            const Text(
-              '피하고 싶은 요소가 있나요?',
-              style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800),
-            ),
-            const SizedBox(height: 6),
-            const Text(
-              '해당되는 항목을 선택해주세요',
-              style: TextStyle(fontSize: 13, color: Colors.black54),
-            ),
-            const SizedBox(height: 20),
-            ...OptionSets.avoidFactors.map(
-              (label) => SelectableCheckRow(
-                label: label,
-                selected: _selected.contains(label),
-                onTap: () => setState(() {
-                  _selected.contains(label) ? _selected.remove(label) : _selected.add(label);
-                }),
-              ),
-            ),
-          ],
+    final baseTheme = Theme.of(context);
+
+    // 이 화면 안에서만 터치 효과(물결, 하이라이트, 버튼 그림자/오버레이) 제거
+    return Theme(
+      data: baseTheme.copyWith(
+        splashFactory: NoSplash.splashFactory,
+        splashColor: Colors.transparent,
+        highlightColor: Colors.transparent,
+        hoverColor: Colors.transparent,
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: (baseTheme.elevatedButtonTheme.style ?? const ButtonStyle()).copyWith(
+            elevation: WidgetStateProperty.all(0),
+            shadowColor: WidgetStateProperty.all(Colors.transparent),
+            overlayColor: WidgetStateProperty.all(Colors.transparent),
+            splashFactory: NoSplash.splashFactory,
+          ),
         ),
       ),
-      bottomButton: PrimaryButton(
-        label: '취향 분석하기',
-        onPressed: () {
-          widget.data
-            ..avoidFactors.clear()
-            ..avoidFactors.addAll(_selected);
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (_) => AnalyzingScreen(data: widget.data)),
-          );
-        },
+      child: StepScaffold(
+        title: '취향 선택',
+        stepIndex: widget.stepIndex,
+        stepTotal: widget.stepTotal,
+        body: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 8),
+              const Text(
+                '피하고 싶은 요소가 있나요?',
+                style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(height: 6),
+              const Text(
+                '해당되는 항목을 선택해주세요',
+                style: TextStyle(fontSize: 13, color: Colors.black54),
+              ),
+              const SizedBox(height: 20),
+              ...OptionSets.avoidFactors.map(
+                    (label) => SelectableCheckRow(
+                  label: label,
+                  selected: _selected.contains(label),
+                  onTap: () => setState(() {
+                    _selected.contains(label)
+                        ? _selected.remove(label)
+                        : _selected.add(label);
+                  }),
+                ),
+              ),
+            ],
+          ),
+        ),
+        bottomButton: PrimaryButton(
+          label: '취향 분석하기',
+          onPressed: () {
+            widget.data
+              ..avoidFactors.clear()
+              ..avoidFactors.addAll(_selected);
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(
+                builder: (_) => AnalyzingScreen(data: widget.data),
+              ),
+            );
+          },
+        ),
       ),
     );
   }

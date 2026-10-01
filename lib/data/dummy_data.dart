@@ -21,7 +21,7 @@ class OptionSets {
 
   static const List<String> foodTypes = [
     '한식', '양식', '일식', '중식',
-    '디저트', '분식', '일식', '샐러드',
+    '디저트', '분식', '퓨전', '샐러드',
   ];
 
   static const List<String> moods = [
