@@ -30,6 +30,21 @@ class CourseApiService {
   final NaverSearchService _naver =
   NaverSearchService();
 
+  /// 이미 추천한 장소 기록 (다시 추천할 때 제외하기 위함)
+  static final Set<String> _shownPlaceKeys = {};
+
+  /// 기록이 어떤 조건(위치 + 취향)에 대한 것인지 구분하는 값.
+  /// 조건이 바뀌면 기록을 자동으로 비운다.
+  static String? _historySignature;
+
+  /// 새 코스 만들기를 시작할 때 호출하면 추천 기록을 초기화한다. (선택)
+  static void resetHistory() {
+    _shownPlaceKeys.clear();
+    _historySignature = null;
+  }
+
+  /// [isAlternate]는 기존 호출부와의 호환을 위해 남겨둔 값이다.
+  /// 이제 다시 추천 여부와 상관없이 "이미 추천한 장소는 제외"하는 방식으로 동작한다.
   Future<RecommendedCourse?> buildCourse(
       CourseFlowData data, {
         required bool isAlternate,
@@ -47,24 +62,32 @@ class CourseApiService {
     }
 
     try {
-      final foodQuery =
-      _foodQuery(data, isAlternate);
+      final signature = _signature(data, location);
+
+      if (_historySignature != signature) {
+        _shownPlaceKeys.clear();
+        _historySignature = signature;
+      }
 
       final foodPlaces =
-      await _searchKakaoWithNaverFallback(
-        foodQuery,
+      await _searchWithFallbacks(
+        _foodQueries(data),
         location,
       );
 
       final cafePlaces =
-      await _searchKakaoWithNaverFallback(
-        '카페',
+      await _searchWithFallbacks(
+        const ['카페', '커피'],
         location,
       );
 
       final activityPlaces =
-      await _searchKakaoWithNaverFallback(
-        _activityQuery(data),
+      await _searchWithFallbacks(
+        [
+          _activityQuery(data),
+          '가볼만한곳',
+          '공원',
+        ].toSet().toList(),
         location,
       );
 
@@ -77,9 +100,39 @@ class CourseApiService {
       final stops = <CourseStop>[];
       final details = <PlaceDetail>[];
 
-      _addKakaoStop(
-        stops,
-        details,
+      // 한 코스 안에서 같은 장소가 두 번 나오지 않도록 관리
+      final usedInCourse = <String>{};
+
+      void addStop(
+          List<KakaoPlace> places, {
+            required String category,
+            required String timeRange,
+            required IconData icon,
+            required Color color,
+          }) {
+        final place =
+        _pickPlace(places, usedInCourse);
+
+        if (place == null) {
+          return;
+        }
+
+        final key = _placeKey(place);
+        usedInCourse.add(key);
+        _shownPlaceKeys.add(key);
+
+        _addKakaoStop(
+          stops,
+          details,
+          place,
+          category: category,
+          timeRange: timeRange,
+          icon: icon,
+          color: color,
+        );
+      }
+
+      addStop(
         foodPlaces,
         category: '식사',
         timeRange:
@@ -91,9 +144,7 @@ class CourseApiService {
         color: const Color(0xFFE8734A),
       );
 
-      _addKakaoStop(
-        stops,
-        details,
+      addStop(
         cafePlaces,
         category: '카페',
         timeRange: '19:40 ~ 21:00',
@@ -101,9 +152,7 @@ class CourseApiService {
         color: const Color(0xFFC98B4A),
       );
 
-      _addKakaoStop(
-        stops,
-        details,
+      addStop(
         activityPlaces,
         category: '활동',
         timeRange: '21:00 ~ 22:00',
@@ -143,6 +192,90 @@ class CourseApiService {
         data.withWhom.isNotEmpty;
   }
 
+  String _signature(
+      CourseFlowData data,
+      SelectedLocation location,
+      ) {
+    return '${location.x},${location.y}'
+        '|${data.mode}'
+        '|${data.foodTypes}'
+        '|${data.moods}'
+        '|${data.priorities}'
+        '|${data.situation}'
+        '|${data.withWhom}';
+  }
+
+  String _placeKey(KakaoPlace place) {
+    return place.id.isNotEmpty
+        ? place.id
+        : place.name;
+  }
+
+  /// 후보 중에서 "이번 코스에서 안 쓰였고, 아직 추천한 적 없는" 장소를 고른다.
+  /// 후보가 모두 이미 추천된 장소라면 기록을 비우고 처음부터 다시 돌린다.
+  KakaoPlace? _pickPlace(
+      List<KakaoPlace> places,
+      Set<String> usedInCourse,
+      ) {
+    final candidates = places
+        .where(
+          (p) => !usedInCourse.contains(
+        _placeKey(p),
+      ),
+    )
+        .toList();
+
+    if (candidates.isEmpty) {
+      return null;
+    }
+
+    for (final place in candidates) {
+      if (!_shownPlaceKeys.contains(
+        _placeKey(place),
+      )) {
+        return place;
+      }
+    }
+
+    for (final place in candidates) {
+      _shownPlaceKeys.remove(
+        _placeKey(place),
+      );
+    }
+
+    return candidates.first;
+  }
+
+  /// 여러 검색어를 순서대로 시도해서 후보를 충분히 모은다.
+  /// 첫 검색어 결과가 비어 있어도 다음 검색어로 채워서 코스가 줄어들지 않게 한다.
+  Future<List<KakaoPlace>> _searchWithFallbacks(
+      List<String> queries,
+      SelectedLocation location,
+      ) async {
+    final merged = <KakaoPlace>[];
+    final seen = <String>{};
+
+    for (final query in queries) {
+      final places =
+      await _searchKakaoWithNaverFallback(
+        query,
+        location,
+      );
+
+      for (final place in places) {
+        if (seen.add(_placeKey(place))) {
+          merged.add(place);
+        }
+      }
+
+      if (merged.length >= 8) {
+        break;
+      }
+    }
+
+    return merged;
+  }
+
   Future<List<KakaoPlace>>
   _searchKakaoWithNaverFallback(
       String query,
@@ -152,7 +285,7 @@ class CourseApiService {
       final places =
       await _kakao.searchKeyword(
         query,
-        size: 10,
+        size: 15,
         x: location.x,
         y: location.y,
         radius: 2000,
@@ -208,20 +341,20 @@ class CourseApiService {
     }
   }
 
-  String _foodQuery(
+  List<String> _foodQueries(
       CourseFlowData data,
-      bool isAlternate,
       ) {
-    final food = data.foodTypes.isNotEmpty
-        ? data.foodTypes.first
-        : '맛집';
+    if (data.foodTypes.isEmpty) {
+      return const ['맛집', '음식점'];
+    }
 
-    final suffix =
-    isAlternate
-        ? ' 추천 맛집'
-        : ' 맛집';
+    final food = data.foodTypes.first;
 
-    return '$food$suffix';
+    return [
+      '$food 맛집',
+      food,
+      '맛집',
+    ].toSet().toList();
   }
 
   String _activityQuery(
@@ -245,18 +378,12 @@ class CourseApiService {
   void _addKakaoStop(
       List<CourseStop> stops,
       List<PlaceDetail> details,
-      List<KakaoPlace> places, {
+      KakaoPlace place, {
         required String category,
         required String timeRange,
         required IconData icon,
         required Color color,
       }) {
-    if (places.isEmpty) {
-      return;
-    }
-
-    final place = places.first;
-
     final location =
     place.roadAddressName.isNotEmpty
         ? place.roadAddressName
