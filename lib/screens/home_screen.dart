@@ -37,12 +37,15 @@ class _HomeScreenState extends State<HomeScreen> {
     ),
   ];
 
-  Future<void> _selectLocation() async {
+  /// 장소 검색 화면을 열고, 장소를 선택했으면 true를 반환
+  Future<bool> _selectLocation() async {
     final result = await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => const LocationSearchScreen(),
       ),
     );
+
+    if (!mounted) return false;
 
     if (result != null && result is SelectedLocation) {
       setState(() {
@@ -50,13 +53,17 @@ class _HomeScreenState extends State<HomeScreen> {
       });
 
       CourseApiServiceLocation.setLocation(result);
+      return true;
     }
+
+    return false;
   }
 
-  void _startCourse() {
+  /// 상황에 맞는 코스 추천받기
+  Future<void> _startCourse() async {
     if (!CourseApiServiceLocation.hasLocation) {
-      _selectLocation();
-      return;
+      final selected = await _selectLocation();
+      if (!selected || !mounted) return;
     }
 
     final data = CourseFlowData(
@@ -66,6 +73,20 @@ class _HomeScreenState extends State<HomeScreen> {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => WhoWithScreen(data: data),
+      ),
+    );
+  }
+
+  /// 친구들과 함께 코스 만들기
+  Future<void> _startFriendsCourse() async {
+    if (!CourseApiServiceLocation.hasLocation) {
+      final selected = await _selectLocation();
+      if (!selected || !mounted) return;
+    }
+
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => const InviteFriendsScreen(),
       ),
     );
   }
@@ -147,14 +168,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   AppColors.peachCardEnd,
                 ],
                 iconColor: const Color(0xFFD97B4C),
-                onTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) =>
-                      const InviteFriendsScreen(),
-                    ),
-                  );
-                },
+                onTap: _startFriendsCourse,
               ),
 
               const SizedBox(height: 14),
