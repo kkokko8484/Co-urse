@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 import '../app_colors.dart';
 import '../models/models.dart';
 import '../services/course_api_service.dart';
+import '../services/saved_schedule_store.dart';
 import 'invite_friends_screen.dart';
 import 'location_search_screen.dart';
+import 'saved_course_screen.dart';
 import 'who_with_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -87,6 +89,26 @@ class _HomeScreenState extends State<HomeScreen> {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => const InviteFriendsScreen(),
+      ),
+    );
+  }
+
+  /// 하단 "일정" 탭: 저장된 일정이 없으면 안내 문구, 있으면 일정 화면으로 이동
+  void _openSavedCourses() {
+    if (SavedScheduleStore.instance.isEmpty) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(
+            content: Text('코스를 저장해야 합니다.'),
+          ),
+        );
+      return;
+    }
+
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => const SavedCourseScreen(),
       ),
     );
   }
@@ -265,6 +287,12 @@ class _HomeScreenState extends State<HomeScreen> {
         showUnselectedLabels: true,
         type: BottomNavigationBarType.fixed,
         onTap: (i) {
+          // 일정 탭(2번): 홈 화면에 머문 채로 저장 여부만 확인
+          if (i == 2) {
+            _openSavedCourses();
+            return;
+          }
+
           setState(() {
             _navIndex = i;
           });

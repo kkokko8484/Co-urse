@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../app_colors.dart';
 import '../models/models.dart';
+import '../services/saved_schedule_store.dart';
 
 class SaveScheduleScreen extends StatefulWidget {
   final CourseFlowData data;
@@ -23,15 +24,14 @@ class _SaveScheduleScreenState extends State<SaveScheduleScreen> {
   @override
   void initState() {
     super.initState();
-    _selectedDate = DateTime(2026, 6, 16);
-    _visibleMonth = DateTime(2026, 6, 1);
-    _startTime = _parseTime(widget.course.stops.first.timeRange.split('~').first.trim());
-    _endTime = _parseTime(widget.course.stops.last.timeRange.split('~').last.trim());
-  }
+    // 실행한 날짜(오늘)를 기본 선택값으로, 달력도 이번 달로 표시
+    final now = DateTime.now();
+    _selectedDate = DateTime(now.year, now.month, now.day);
+    _visibleMonth = DateTime(now.year, now.month, 1);
 
-  TimeOfDay _parseTime(String hhmm) {
-    final parts = hhmm.split(':');
-    return TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
+    // 시간 기본값: 시작 08:00, 종료 22:00
+    _startTime = const TimeOfDay(hour: 8, minute: 0);
+    _endTime = const TimeOfDay(hour: 22, minute: 0);
   }
 
   String _fmt(TimeOfDay t) =>
@@ -57,6 +57,21 @@ class _SaveScheduleScreenState extends State<SaveScheduleScreen> {
         }
       });
     }
+  }
+
+  void _saveSchedule() {
+    // 저장소에 일정 추가 (홈 하단 "일정" 탭에서 확인 가능)
+    SavedScheduleStore.instance.add(
+      course: widget.course,
+      date: _selectedDate,
+      startTime: _fmt(_startTime),
+      endTime: _fmt(_endTime),
+    );
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('코스가 일정에 저장되었어요!')),
+    );
+    Navigator.of(context).popUntil((route) => route.isFirst);
   }
 
   @override
@@ -126,13 +141,13 @@ class _SaveScheduleScreenState extends State<SaveScheduleScreen> {
                     Row(
                       children: _weekdayLabels
                           .map((d) => Expanded(
-                                child: Center(
-                                  child: Text(
-                                    d,
-                                    style: const TextStyle(fontSize: 12, color: AppColors.textTertiary, fontWeight: FontWeight.w600),
-                                  ),
-                                ),
-                              ))
+                        child: Center(
+                          child: Text(
+                            d,
+                            style: const TextStyle(fontSize: 12, color: AppColors.textTertiary, fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                      ))
                           .toList(),
                     ),
                     const SizedBox(height: 6),
@@ -203,12 +218,7 @@ class _SaveScheduleScreenState extends State<SaveScheduleScreen> {
                     elevation: 0,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                   ),
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('코스가 일정에 저장되었어요!')),
-                    );
-                    Navigator.of(context).popUntil((route) => route.isFirst);
-                  },
+                  onPressed: _saveSchedule,
                   child: const Text(
                     '일정 저장',
                     style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700),
