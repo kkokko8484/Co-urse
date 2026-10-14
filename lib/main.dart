@@ -1,8 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:kakao_flutter_sdk_common/kakao_flutter_sdk_common.dart';
+
 import 'app_colors.dart';
 import 'screens/splash_screen.dart';
+import 'firebase_options.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+
+  await KakaoSdk.init(
+    nativeAppKey: const String.fromEnvironment('KAKAO_NATIVE_APP_KEY'),
+  );
+
   runApp(const CourseApp());
 }
 
@@ -22,11 +36,10 @@ class CourseApp extends StatelessWidget {
         ),
         scaffoldBackgroundColor: AppColors.background,
         textTheme: ThemeData.light().textTheme.apply(
-              bodyColor: AppColors.textPrimary,
-              displayColor: AppColors.textPrimary,
-            ),
+          bodyColor: AppColors.textPrimary,
+          displayColor: AppColors.textPrimary,
+        ),
       ),
-      // 앱 실행 시 가장 먼저 스플래시 화면을 보여줍니다.
       home: const SplashScreen(),
     );
   }
