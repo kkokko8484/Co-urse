@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 
 import '../app_colors.dart';
@@ -42,8 +43,21 @@ class _SaveScheduleScreenState extends State<SaveScheduleScreen> {
   void initState() {
     super.initState();
 
-    _selectedDate = DateTime(2026, 6, 16);
-    _visibleMonth = DateTime(2026, 6, 1);
+    // 현재 날짜를 기본 선택 날짜로 설정
+    final today = DateTime.now();
+
+    _selectedDate = DateTime(
+      today.year,
+      today.month,
+      today.day,
+    );
+
+    // 달력도 현재 달을 기본으로 표시
+    _visibleMonth = DateTime(
+      today.year,
+      today.month,
+      1,
+    );
 
     _startTime = _parseTime(
       widget.course.stops.first.timeRange.split('~').first.trim(),
@@ -155,8 +169,7 @@ class _SaveScheduleScreenState extends State<SaveScheduleScreen> {
       _visibleMonth.year,
       _visibleMonth.month,
       1,
-    ).weekday %
-        7;
+    ).weekday % 7;
 
     return Scaffold(
       backgroundColor: AppColors.background,

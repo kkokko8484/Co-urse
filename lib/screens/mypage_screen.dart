@@ -598,7 +598,9 @@ class _AuthScreenState extends State<AuthScreen> {
                       border: OutlineInputBorder(),
                     ),
                     validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
+                      if (value == null || value
+                          .trim()
+                          .isEmpty) {
                         return '닉네임을 입력해 주세요.';
                       }
                       return null;
@@ -715,9 +717,10 @@ class _AuthScreenState extends State<AuthScreen> {
                       : () {
                     Navigator.of(context).pushReplacement(
                       MaterialPageRoute(
-                        builder: (_) => AuthScreen(
-                          isSignUp: !widget.isSignUp,
-                        ),
+                        builder: (_) =>
+                            AuthScreen(
+                              isSignUp: !widget.isSignUp,
+                            ),
                       ),
                     );
                   },
