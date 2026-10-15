@@ -26,28 +26,47 @@ class _CourseScreenState extends State<CourseScreen> {
 
   static const List<_ThemeItem> _themes = [
     _ThemeItem(
-      label: '맛집 투어',
-      icon: Icons.restaurant_rounded,
-      color: Color(0xFFFFE7D7),
-      query: '맛집',
+      label: '데이트 코스',
+      subtitle: '식사부터 카페, 산책까지',
+      icon: Icons.favorite_rounded,
+      color: Color(0xFFFFE3E3),
+      steps: [
+        _ThemeStep(label: '식사하기', query: '맛집'),
+        _ThemeStep(label: '분위기 좋은 카페', query: '카페'),
+        _ThemeStep(label: '함께 산책하기', query: '공원'),
+      ],
     ),
     _ThemeItem(
-      label: '카페 투어',
-      icon: Icons.local_cafe_rounded,
-      color: Color(0xFFF2E8D9),
-      query: '카페',
+      label: '친구와 놀기',
+      subtitle: '맛집과 주변 놀거리',
+      icon: Icons.groups_rounded,
+      color: Color(0xFFFFE9D7),
+      steps: [
+        _ThemeStep(label: '같이 식사하기', query: '맛집'),
+        _ThemeStep(label: '가볼 만한 곳', query: '관광지'),
+        _ThemeStep(label: '카페에서 쉬기', query: '카페'),
+      ],
     ),
     _ThemeItem(
-      label: '자연 힐링',
-      icon: Icons.park_rounded,
-      color: Color(0xFFDDF0E6),
-      query: '공원',
-    ),
-    _ThemeItem(
-      label: '도시 산책',
-      icon: Icons.location_city_rounded,
+      label: '가족 나들이',
+      subtitle: '식사와 볼거리 중심',
+      icon: Icons.family_restroom_rounded,
       color: Color(0xFFE1EAF8),
-      query: '관광지',
+      steps: [
+        _ThemeStep(label: '가족 식사', query: '맛집'),
+        _ThemeStep(label: '주변 명소', query: '관광지'),
+        _ThemeStep(label: '공원·자연', query: '공원'),
+      ],
+    ),
+    _ThemeItem(
+      label: '힐링 코스',
+      subtitle: '자연 속에서 여유롭게',
+      icon: Icons.spa_rounded,
+      color: Color(0xFFDDF0E6),
+      steps: [
+        _ThemeStep(label: '자연·공원', query: '공원'),
+        _ThemeStep(label: '조용한 카페', query: '카페'),
+      ],
     ),
   ];
 
@@ -66,10 +85,10 @@ class _CourseScreenState extends State<CourseScreen> {
   bool _loading = false;
   String? _error;
 
-  // 현재 화면에서만 유지되는 북마크
   final Set<String> _bookmarkedIds = {};
 
-  SelectedLocation? get _location => CourseApiServiceLocation.selectedLocation;
+  SelectedLocation? get _location =>
+      CourseApiServiceLocation.selectedLocation;
 
   @override
   void initState() {
@@ -98,7 +117,6 @@ class _CourseScreenState extends State<CourseScreen> {
     }
   }
 
-  // 약속 장소 주변 검색
   Future<void> _loadPlaces({String? query}) async {
     final location = _location;
 
@@ -206,7 +224,6 @@ class _CourseScreenState extends State<CourseScreen> {
     }
   }
 
-  // 약속 장소 변경
   Future<void> _selectLocation() async {
     final result = await Navigator.of(context).push<SelectedLocation>(
       MaterialPageRoute(
@@ -250,15 +267,24 @@ class _CourseScreenState extends State<CourseScreen> {
     _loadPlaces(query: keyword.isEmpty ? null : keyword);
   }
 
-  void _onThemeSelected(_ThemeItem item) {
-    setState(() {
-      _selectedTheme = item.label;
-      _selectedCategory = item.query == '공원' ? '공원·자연' : item.query;
-      _searchText = item.query;
-      _searchController.text = item.query;
-    });
+  Future<void> _onThemeSelected(_ThemeItem item) async {
+    final location = _location;
 
-    _loadPlaces(query: item.query);
+    if (location == null) {
+      await _selectLocation();
+      return;
+    }
+
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => _ThemeCourseScreen(
+          theme: item,
+          location: location,
+          kakao: _kakao,
+          distanceLabel: _distanceLabel,
+        ),
+      ),
+    );
   }
 
   String _categoryLabel(KakaoPlace place) {
@@ -298,8 +324,6 @@ class _CourseScreenState extends State<CourseScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-
-      // 상단에는 제목만 표시
       appBar: AppBar(
         backgroundColor: AppColors.background,
         elevation: 0,
@@ -312,15 +336,14 @@ class _CourseScreenState extends State<CourseScreen> {
           ),
         ),
       ),
-
-      // 하단 네비게이션 바는 여기서 별도로 만들지 않음
       body: SafeArea(
         top: false,
         child: RefreshIndicator(
           color: AppColors.primary,
           onRefresh: () => _loadPlaces(),
           child: CustomScrollView(
-            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+            keyboardDismissBehavior:
+            ScrollViewKeyboardDismissBehavior.onDrag,
             slivers: [
               SliverPadding(
                 padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
@@ -373,12 +396,12 @@ class _CourseScreenState extends State<CourseScreen> {
                         ),
                       )
                     else if (_error != null)
-                      _buildError()
-                    else if (_places.isEmpty)
-                      _buildEmpty()
-                    else
-                      ..._places.take(8).toList().asMap().entries.map(
-                            (entry) => Padding(
+                        _buildError()
+                      else if (_places.isEmpty)
+                          _buildEmpty()
+                        else
+                          ..._places.take(8).toList().asMap().entries.map(
+                                (entry) => Padding(
                               padding: const EdgeInsets.only(bottom: 10),
                               child: _buildPlaceCard(
                                 entry.value,
@@ -395,13 +418,22 @@ class _CourseScreenState extends State<CourseScreen> {
                         color: AppColors.textPrimary,
                       ),
                     ),
+                    const SizedBox(height: 5),
+                    const Text(
+                      '어떤 약속을 하고 싶은지 선택해 보세요.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
                     const SizedBox(height: 12),
                     SizedBox(
-                      height: 92,
+                      height: 112,
                       child: ListView.separated(
                         scrollDirection: Axis.horizontal,
                         itemCount: _themes.length,
-                        separatorBuilder: (_, __) => const SizedBox(width: 10),
+                        separatorBuilder: (_, __) =>
+                        const SizedBox(width: 10),
                         itemBuilder: (context, index) {
                           return _buildThemeCard(_themes[index]);
                         },
@@ -419,7 +451,6 @@ class _CourseScreenState extends State<CourseScreen> {
     );
   }
 
-  // 상단 배너
   Widget _buildHero(SelectedLocation? location) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(20),
@@ -502,7 +533,6 @@ class _CourseScreenState extends State<CourseScreen> {
     );
   }
 
-  // 검색창
   Widget _buildSearchBox() {
     return TextField(
       controller: _searchController,
@@ -533,7 +563,6 @@ class _CourseScreenState extends State<CourseScreen> {
     );
   }
 
-  // 카테고리
   Widget _buildCategoryChips() {
     final icons = <String, IconData>{
       '전체': Icons.grid_view_rounded,
@@ -564,7 +593,9 @@ class _CourseScreenState extends State<CourseScreen> {
                 horizontal: 4,
               ),
               decoration: BoxDecoration(
-                color: selected ? AppColors.primary : const Color(0xFFF7F7F8),
+                color: selected
+                    ? AppColors.primary
+                    : const Color(0xFFF7F7F8),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Column(
@@ -573,7 +604,8 @@ class _CourseScreenState extends State<CourseScreen> {
                   Icon(
                     icons[category],
                     size: 21,
-                    color: selected ? Colors.white : AppColors.textSecondary,
+                    color:
+                    selected ? Colors.white : AppColors.textSecondary,
                   ),
                   const SizedBox(height: 5),
                   Text(
@@ -582,8 +614,10 @@ class _CourseScreenState extends State<CourseScreen> {
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       fontSize: 10.5,
-                      fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                      color: selected ? Colors.white : AppColors.textSecondary,
+                      fontWeight:
+                      selected ? FontWeight.w700 : FontWeight.w500,
+                      color:
+                      selected ? Colors.white : AppColors.textSecondary,
                     ),
                   ),
                 ],
@@ -595,7 +629,6 @@ class _CourseScreenState extends State<CourseScreen> {
     );
   }
 
-  // 장소 카드
   Widget _buildPlaceCard(KakaoPlace place, int index) {
     final isBookmarked = _bookmarkedIds.contains(place.id);
     final photoUrl = _photoUrls[index % _photoUrls.length];
@@ -737,7 +770,9 @@ class _CourseScreenState extends State<CourseScreen> {
               isBookmarked
                   ? Icons.bookmark_rounded
                   : Icons.bookmark_border_rounded,
-              color: isBookmarked ? AppColors.primary : AppColors.textSecondary,
+              color: isBookmarked
+                  ? AppColors.primary
+                  : AppColors.textSecondary,
               size: 21,
             ),
           ),
@@ -746,40 +781,45 @@ class _CourseScreenState extends State<CourseScreen> {
     );
   }
 
-  // 테마 카드
   Widget _buildThemeCard(_ThemeItem item) {
-    final selected = _selectedTheme == item.label;
-
     return InkWell(
       onTap: () => _onThemeSelected(item),
-      borderRadius: BorderRadius.circular(15),
+      borderRadius: BorderRadius.circular(16),
       child: Container(
-        width: 92,
+        width: 148,
+        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: item.color,
-          borderRadius: BorderRadius.circular(15),
-          border: selected
-              ? Border.all(
-                  color: AppColors.primary,
-                  width: 2,
-                )
-              : null,
+          borderRadius: BorderRadius.circular(16),
         ),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
               item.icon,
-              size: 25,
+              size: 24,
               color: const Color(0xFF4D5A62),
             ),
             const SizedBox(height: 7),
             Text(
               item.label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: const TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
                 color: Color(0xFF35404A),
+              ),
+            ),
+            const SizedBox(height: 3),
+            Text(
+              item.subtitle,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 10,
+                color: Color(0xFF58636B),
               ),
             ),
           ],
@@ -788,7 +828,6 @@ class _CourseScreenState extends State<CourseScreen> {
     );
   }
 
-  // 약속 장소가 없는 경우
   Widget _buildNoLocation() {
     return Container(
       width: double.infinity,
@@ -834,7 +873,6 @@ class _CourseScreenState extends State<CourseScreen> {
     );
   }
 
-  // 오류 메시지
   Widget _buildError() {
     return Container(
       width: double.infinity,
@@ -870,7 +908,6 @@ class _CourseScreenState extends State<CourseScreen> {
     );
   }
 
-  // 검색 결과가 없는 경우
   Widget _buildEmpty() {
     return Container(
       width: double.infinity,
@@ -905,7 +942,6 @@ class _CourseScreenState extends State<CourseScreen> {
     );
   }
 
-  // 약속 장소 변경 안내
   Widget _buildNearbyHint(SelectedLocation? location) {
     return InkWell(
       onTap: _selectLocation,
@@ -932,7 +968,9 @@ class _CourseScreenState extends State<CourseScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    location == null ? '어디에서 만날 예정인가요?' : '다른 약속 장소 주변도 둘러볼까요?',
+                    location == null
+                        ? '어디에서 만날 예정인가요?'
+                        : '다른 약속 장소 주변도 둘러볼까요?',
                     style: const TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
@@ -963,14 +1001,415 @@ class _CourseScreenState extends State<CourseScreen> {
 
 class _ThemeItem {
   final String label;
+  final String subtitle;
   final IconData icon;
   final Color color;
-  final String query;
+  final List<_ThemeStep> steps;
 
   const _ThemeItem({
     required this.label,
+    required this.subtitle,
     required this.icon,
     required this.color,
+    required this.steps,
+  });
+}
+
+class _ThemeStep {
+  final String label;
+  final String query;
+
+  const _ThemeStep({
+    required this.label,
     required this.query,
   });
+}
+
+class _ThemeCourseScreen extends StatefulWidget {
+  final _ThemeItem theme;
+  final SelectedLocation location;
+  final KakaoLocalService kakao;
+  final String Function(KakaoPlace) distanceLabel;
+
+  const _ThemeCourseScreen({
+    required this.theme,
+    required this.location,
+    required this.kakao,
+    required this.distanceLabel,
+  });
+
+  @override
+  State<_ThemeCourseScreen> createState() => _ThemeCourseScreenState();
+}
+
+class _ThemeCourseScreenState extends State<_ThemeCourseScreen> {
+  late Future<List<List<KakaoPlace>>> _resultsFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _resultsFuture = _loadThemePlaces();
+  }
+
+  Future<List<List<KakaoPlace>>> _loadThemePlaces() async {
+    final location = widget.location;
+
+    final futures = widget.theme.steps.map((step) {
+      return widget.kakao.searchKeyword(
+        step.query,
+        size: 5,
+        x: location.x,
+        y: location.y,
+        radius: 5000,
+      );
+    }).toList();
+
+    return Future.wait(futures);
+  }
+
+  String _addressLabel(KakaoPlace place) {
+    final address = place.roadAddressName.isNotEmpty
+        ? place.roadAddressName
+        : place.addressName;
+
+    final parts = address.split(' ');
+
+    return parts.length >= 3
+        ? '${parts[0]} ${parts[1]} ${parts[2]}'
+        : address;
+  }
+
+  String _categoryLabel(KakaoPlace place) {
+    if (place.categoryName.isEmpty) return '주변 장소';
+
+    return place.categoryName.split('>').last.trim();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = widget.theme;
+
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        backgroundColor: AppColors.background,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        title: Text(
+          theme.label,
+          style: const TextStyle(
+            color: AppColors.textPrimary,
+            fontSize: 18,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+      ),
+      body: FutureBuilder<List<List<KakaoPlace>>>(
+        future: _resultsFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(
+              child: CircularProgressIndicator(
+                color: AppColors.primary,
+              ),
+            );
+          }
+
+          if (snapshot.hasError) {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.wifi_off_rounded, size: 36),
+                    const SizedBox(height: 12),
+                    const Text('추천 장소를 불러오지 못했어요.'),
+                    const SizedBox(height: 8),
+                    FilledButton(
+                      onPressed: () {
+                        setState(() {
+                          _resultsFuture = _loadThemePlaces();
+                        });
+                      },
+                      child: const Text('다시 시도'),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
+
+          final groups = snapshot.data ?? [];
+
+          return RefreshIndicator(
+            color: AppColors.primary,
+            onRefresh: () async {
+              final future = _loadThemePlaces();
+              setState(() {
+                _resultsFuture = future;
+              });
+              await future;
+            },
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: theme.color,
+                    borderRadius: BorderRadius.circular(22),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 54,
+                        height: 54,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.75),
+                          borderRadius: BorderRadius.circular(17),
+                        ),
+                        child: Icon(
+                          theme.icon,
+                          size: 29,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              theme.label,
+                              style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                            const SizedBox(height: 5),
+                            Text(
+                              theme.subtitle,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '${widget.location.displayName} 주변 장소',
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 22),
+                const Text(
+                  '이렇게 둘러보세요',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                const Text(
+                  '각 단계에서 마음에 드는 장소를 골라보세요.',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                ...List.generate(theme.steps.length, (index) {
+                  final step = theme.steps[index];
+
+                  final places = index < groups.length
+                      ? groups[index]
+                      : <KakaoPlace>[];
+
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              width: 30,
+                              height: 30,
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                color: AppColors.primary,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Text(
+                                '${index + 1}',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                step.label,
+                                style: const TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppColors.textPrimary,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        if (places.isEmpty)
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: const Text(
+                              '주변에서 추천할 장소를 찾지 못했어요.',
+                              style: TextStyle(
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                          )
+                        else
+                          ...places.take(3).map((place) {
+                            final distance =
+                            widget.distanceLabel(place);
+
+                            return Container(
+                              margin: const EdgeInsets.only(bottom: 8),
+                              padding: const EdgeInsets.all(14),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                  color: const Color(0xFFF0F0F1),
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 42,
+                                    height: 42,
+                                    decoration: BoxDecoration(
+                                      color: theme.color,
+                                      borderRadius: BorderRadius.circular(13),
+                                    ),
+                                    child: Icon(
+                                      step.query == '맛집'
+                                          ? Icons.restaurant_rounded
+                                          : step.query == '카페'
+                                          ? Icons.local_cafe_rounded
+                                          : step.query == '공원'
+                                          ? Icons.park_rounded
+                                          : Icons.place_rounded,
+                                      color: AppColors.textPrimary,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                      CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          place.name,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: const TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w800,
+                                            color: AppColors.textPrimary,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          '${_categoryLabel(place)} · '
+                                              '${_addressLabel(place)}',
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: const TextStyle(
+                                            fontSize: 10.5,
+                                            color: AppColors.textSecondary,
+                                          ),
+                                        ),
+                                        if (distance.isNotEmpty) ...[
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            '약속 장소에서 $distance',
+                                            style: const TextStyle(
+                                              fontSize: 10.5,
+                                              color: AppColors.primary,
+                                            ),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                  ),
+                                  const Icon(
+                                    Icons.chevron_right_rounded,
+                                    color: AppColors.textSecondary,
+                                  ),
+                                ],
+                              ),
+                            );
+                          }),
+                      ],
+                    ),
+                  );
+                }),
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF2F5FA),
+                    borderRadius: BorderRadius.circular(15),
+                  ),
+                  child: const Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(
+                        Icons.lightbulb_outline_rounded,
+                        color: AppColors.primary,
+                      ),
+                      SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          '이 화면은 약속 목적에 맞춰 장소 종류를 단계별로 추천해요. '
+                              '각 장소를 실제 이동 경로로 연결하는 기능은 별도로 추가할 수 있어요.',
+                          style: TextStyle(
+                            fontSize: 11,
+                            height: 1.5,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
 }
