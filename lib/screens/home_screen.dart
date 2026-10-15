@@ -24,19 +24,25 @@ class _HomeScreenState extends State<HomeScreen> {
 
   static const List<_TodayPick> _todayPicks = [
     _TodayPick(
-      '감성 술집',
-      Color(0xFF3A3A4A),
-      Icons.wine_bar,
+      title: '북촌 한옥마을에서 즐기는\n감성 데이트 코스',
+      tag: '데이트 코스',
+      location: '서울 종로구',
+      imageUrl:
+          'https://commons.wikimedia.org/wiki/Special:FilePath/Bukchon%20Hanok%20Village%2001.jpg?width=900',
     ),
     _TodayPick(
-      '브런치 카페',
-      Color(0xFFE8B08A),
-      Icons.brunch_dining,
+      title: '분위기 좋은 카페에서\n여유로운 하루',
+      tag: '맛집 코스',
+      location: '서울 마포구',
+      imageUrl:
+          'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?auto=format&fit=crop&w=900&q=85',
     ),
     _TodayPick(
-      '야경 명소',
-      Color(0xFF6C5CE7),
-      Icons.nightlight_round,
+      title: '도심 속 풍경을 즐기는\n힐링 코스',
+      tag: '힐링 코스',
+      location: '서울 영등포구',
+      imageUrl:
+          'https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?auto=format&fit=crop&w=900&q=85',
     ),
   ];
 
@@ -108,7 +114,7 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             const SizedBox(height: 8),
 
-            // 위치 선택
+// 위치 선택
             GestureDetector(
               onTap: _selectLocation,
               child: Row(
@@ -164,6 +170,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
             const SizedBox(height: 20),
 
+// 친구들과 함께 코스 만들기
             _EntryCard(
               title: '친구들과 함께\n코스 만들기',
               icon: Icons.groups_rounded,
@@ -177,6 +184,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
             const SizedBox(height: 14),
 
+// 상황에 맞는 코스 추천받기
             _EntryCard(
               title: '상황에 맞는\n코스 추천받기',
               icon: Icons.map_rounded,
@@ -188,72 +196,212 @@ class _HomeScreenState extends State<HomeScreen> {
               onTap: _startCourse,
             ),
 
-            const SizedBox(height: 24),
+            const SizedBox(height: 28),
 
+// 오늘의 추천 제목
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: const [
-                Text(
+              children: [
+                const Text(
                   '오늘의 추천',
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: 18,
                     fontWeight: FontWeight.w800,
                     color: AppColors.textPrimary,
                   ),
                 ),
-                Text(
-                  '더 많은 추천 보기 >',
-                  style: TextStyle(
-                    fontSize: 12.5,
-                    color: AppColors.textTertiary,
+                GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _navIndex = 1;
+                    });
+                  },
+                  child: const Text(
+                    '더 많은 추천 보기 >',
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      color: AppColors.textTertiary,
+                    ),
                   ),
                 ),
               ],
             ),
 
-            const SizedBox(height: 12),
+            const SizedBox(height: 14),
 
+// 가로형 사진 추천 카드
             SizedBox(
-              height: 96,
+              height: 340,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 itemCount: _todayPicks.length,
-                separatorBuilder: (_, __) =>
-                const SizedBox(width: 10),
+                separatorBuilder: (_, __) => const SizedBox(width: 14),
                 itemBuilder: (context, index) {
                   final pick = _todayPicks[index];
 
-                  return Container(
-                    width: 96,
-                    decoration: BoxDecoration(
-                      color: pick.color,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          pick.icon,
-                          color: Colors.white,
-                          size: 26,
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          pick.label,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.w600,
+                  return SizedBox(
+                    width: 270,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(22),
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+// 추천 장소 사진
+                          Image.network(
+                            pick.imageUrl,
+                            fit: BoxFit.cover,
+                            loadingBuilder: (context, child, loadingProgress) {
+                              if (loadingProgress == null) {
+                                return child;
+                              }
+
+                              return Container(
+                                color: const Color(0xFFEAEAEA),
+                                alignment: Alignment.center,
+                                child: const CircularProgressIndicator(
+                                  color: AppColors.primary,
+                                ),
+                              );
+                            },
+                            errorBuilder: (context, error, stackTrace) {
+                              return Container(
+                                color: const Color(0xFFEAEAEA),
+                                alignment: Alignment.center,
+                                child: const Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.image_not_supported_outlined,
+                                      size: 36,
+                                      color: Colors.grey,
+                                    ),
+                                    SizedBox(height: 8),
+                                    Text(
+                                      '이미지를 불러올 수 없어요',
+                                      style: TextStyle(
+                                        color: Colors.grey,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
                           ),
-                        ),
-                      ],
+
+// 사진 위쪽은 밝고 아래쪽은 어둡게 처리
+                          const DecoratedBox(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                                colors: [
+                                  Color(0x11000000),
+                                  Color(0x00000000),
+                                  Color(0xDD000000),
+                                ],
+                                stops: [0.0, 0.35, 1.0],
+                              ),
+                            ),
+                          ),
+
+// 왼쪽 위 테마 태그
+                          Positioned(
+                            top: 16,
+                            left: 16,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 7,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.95),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(
+                                pick.tag,
+                                style: const TextStyle(
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.textPrimary,
+                                ),
+                              ),
+                            ),
+                          ),
+
+// 아래쪽 제목과 위치
+                          Positioned(
+                            left: 18,
+                            right: 18,
+                            bottom: 20,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  pick.title,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontSize: 20,
+                                    height: 1.35,
+                                    fontWeight: FontWeight.w800,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                const SizedBox(height: 10),
+                                Row(
+                                  children: [
+                                    const Icon(
+                                      Icons.location_on,
+                                      size: 15,
+                                      color: Colors.white,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      pick.location,
+                                      style: const TextStyle(
+                                        fontSize: 12.5,
+                                        fontWeight: FontWeight.w500,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   );
                 },
               ),
             ),
 
-            const SizedBox(height: 20),
+            const SizedBox(height: 14),
+
+// 페이지 표시 점
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(
+                _todayPicks.length,
+                (index) {
+                  return Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 3),
+                    width: index == 0 ? 18 : 6,
+                    height: 6,
+                    decoration: BoxDecoration(
+                      color: index == 0
+                          ? AppColors.primary
+                          : AppColors.primary.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  );
+                },
+              ),
+            ),
+
+            const SizedBox(height: 24),
           ],
         ),
       ),
@@ -274,8 +422,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
 
-      // 메인 화면 4개를 전환합니다.
-      // IndexedStack을 사용하므로 탭을 바꿔도 기존 화면 상태를 유지합니다.
+// IndexedStack을 사용해 탭을 바꿔도 기존 화면 상태 유지
       body: IndexedStack(
         index: _navIndex,
         children: [
@@ -286,7 +433,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
 
-      // 메인 화면 4개에서만 표시되는 공통 하단 메뉴
+// 공통 하단 메뉴
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _navIndex,
         selectedItemColor: AppColors.primary,
@@ -317,18 +464,22 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
+/// 오늘의 추천 카드 데이터
 class _TodayPick {
-  final String label;
-  final Color color;
-  final IconData icon;
+  final String title;
+  final String tag;
+  final String location;
+  final String imageUrl;
 
-  const _TodayPick(
-      this.label,
-      this.color,
-      this.icon,
-      );
+  const _TodayPick({
+    required this.title,
+    required this.tag,
+    required this.location,
+    required this.imageUrl,
+  });
 }
 
+/// 홈 화면의 코스 시작 카드
 class _EntryCard extends StatelessWidget {
   final String title;
   final IconData icon;
